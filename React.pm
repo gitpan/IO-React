@@ -6,7 +6,7 @@ use Carp;
 use IO::File;
 
 ## Module Version
-our $VERSION = 1.02;
+our $VERSION = 1.03;
 
 
 ### Constructor
@@ -88,7 +88,7 @@ sub react ($) {
  ReadData:
   my $nfound = select(my $rout=$rin, undef, undef, $timeleft);
   croak "select failed: $!" if ( $nfound < 0 );
-  if ( $nfound == 1 ) {
+  if ( $nfound == 0 ) {
     # Timeout can set a new time limit
     $timeleft = $timeout->();
     croak "TIMEOUT function returned non-numeric value: $timeleft"
@@ -133,7 +133,7 @@ __END__
 
 =head1 NAME
 
-IO::React - Interaction with an io handle
+IO::React - Interaction with an IO::Handle
 
 =head1 SYNOPSIS
 
@@ -194,39 +194,39 @@ and run B<ls>.
   use IO::React;
   use Proc::Spawn;
 
-  my $Prompt   = '\\$';
-  my $Account  = 'XXX';
-  my $Password = 'XXX';
+  my $Prompt   = "\\\$";
+  my $Account  = "XXX";
+  my $Password = "XXX";
 
   my ($pid, $fh) = spawn_pty("telnet localhost");
 
-  my $react = new React($fh);
+  my $react = new IO::React($fh);
   $react->set_display(1);
   $react->set_wait(10);
 
   # React to login prompt
-  $react->react({
+  $react->react(
     WAIT      => 30,
     'ogin:'   => sub { $react->write("$Account\n") },
     'refused' => sub { print "Server not responding\n"; exit 1 }
-  }) || die "React Failed";
+  ) || die "React Failed";
 
   # React to password prompt
-  $react->react({
+  $react->react(
     'word:'  => sub { $react->write("$Password\n") }
-  }) || die "React Failed";
+  ) || die "React Failed";
 
   # React to failure or shell prompt
-  $react->react({
+  $react->react(
     'incorrect' => sub { print "\nWrong Account/Password\n"; exit 1 },
     $Prompt     => sub { $react->write("ls\n") },
-  });
+  );
 
   # React to shell prompt
-  $react->react({
+  $react->react(
     WAIT    => 60,
-    $Prompt => sub { $react->write("exit\n"); exit },
-  });
+    $Prompt => sub { $react->write("exit\n"); },
+  );
 
 =head1 AUTHOR
 
